@@ -32,16 +32,20 @@ public class TasksController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult UpdateTask(int id, [FromBody] TaskModel updatedTask)
     {
+     // Looks for the task with the given ID. If not found, returns 404.
+
         var task = tasks.FirstOrDefault(t => t.Id == id);
         if (task == null) return NotFound();
-
+        // Updates fields from the request payload.
         task.Title = updatedTask.Title;
         task.Completed = updatedTask.Completed;
         task.DueDate = updatedTask.DueDate;
 
+ // Sends a notification in a separate thread, so the HTTP response is not delayed.
         NotificationService.SendNotificationTaskAsync(id); // Async notification
 
         // Push to SSE stream
+        // Serializes the updated task and adds it to an event queue.
         var eventJson = JsonSerializer.Serialize(new { event = "task_updated", task });
         EventStreamService.AddEvent(eventJson);
 
